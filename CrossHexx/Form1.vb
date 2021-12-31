@@ -164,6 +164,9 @@ Public Class Form1
 
         ldsetName()
 
+        ListBox1.SelectedIndex = My.Settings.def_set
+        Button11_Click(Nothing, Nothing)
+
         SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Xor WS_EX_LAYERED Xor WS_EX_TRANSPARENT)
 
         SetLayeredWindowAttributes(Form2.Handle, 0, 255, LWA_ALPHA)
