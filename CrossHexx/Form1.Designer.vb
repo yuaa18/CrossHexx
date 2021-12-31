@@ -983,7 +983,7 @@ Partial Class Form1
         Me.Label1.Name = "Label1"
         Me.Label1.Size = New System.Drawing.Size(93, 12)
         Me.Label1.TabIndex = 3
-        Me.Label1.Text = "CrossHexx v2.8.1"
+        Me.Label1.Text = "CrossHexx v2.8.2"
         '
         'PictureBox1
         '
