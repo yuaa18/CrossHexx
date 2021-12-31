@@ -1145,6 +1145,8 @@ Public Class Form1
         Dim wImghw As String
         Dim wX As String
         Dim wY As String
+        Dim wXOffset As String
+        Dim wYOffset As String
 
 
 
@@ -1189,8 +1191,10 @@ Public Class Form1
         End If
 
         '===========x軸y軸=============
-        wY = NumericUpDown7.Value
-        wX = NumericUpDown8.Value
+        wY = NumericUpDown1.Value
+        wX = NumericUpDown2.Value
+        wYOffset = NumericUpDown5.Value
+        wXOffset = NumericUpDown6.Value
 
 
         '画像ファイルを読み込んで、Imageオブジェクトとして取得する
@@ -1220,6 +1224,8 @@ Public Class Form1
             My.Settings.imghw1 = wImghw
             My.Settings.x1 = wX
             My.Settings.y1 = wY
+            My.Settings.x_offset1 = wXOffset
+            My.Settings.y_offset1 = wYOffset
         ElseIf ListBox1.SelectedIndex = 1 Then
             My.Settings.type2 = wType
             My.Settings.size2 = wSize
@@ -1229,6 +1235,8 @@ Public Class Form1
             My.Settings.imghw2 = wImghw
             My.Settings.x2 = wX
             My.Settings.y2 = wY
+            My.Settings.x_offset2 = wXOffset
+            My.Settings.y_offset2 = wYOffset
         ElseIf ListBox1.SelectedIndex = 2 Then
             My.Settings.type3 = wType
             My.Settings.size3 = wSize
@@ -1238,6 +1246,8 @@ Public Class Form1
             My.Settings.imghw3 = wImghw
             My.Settings.x3 = wX
             My.Settings.y3 = wY
+            My.Settings.x_offset3 = wXOffset
+            My.Settings.y_offset3 = wYOffset
         ElseIf ListBox1.SelectedIndex = 3 Then
             My.Settings.type4 = wType
             My.Settings.size4 = wSize
@@ -1247,6 +1257,8 @@ Public Class Form1
             My.Settings.imghw4 = wImghw
             My.Settings.x4 = wX
             My.Settings.y4 = wY
+            My.Settings.x_offset4 = wXOffset
+            My.Settings.y_offset4 = wYOffset
         ElseIf ListBox1.SelectedIndex = 4 Then
             My.Settings.type5 = wType
             My.Settings.size5 = wSize
@@ -1256,6 +1268,8 @@ Public Class Form1
             My.Settings.imghw5 = wImghw
             My.Settings.x5 = wX
             My.Settings.y5 = wY
+            My.Settings.x_offset5 = wXOffset
+            My.Settings.y_offset5 = wYOffset
         End If
 
 
@@ -1274,7 +1288,8 @@ Public Class Form1
         Dim loadImghw As String
         Dim loadX As String
         Dim loadY As String
-
+        Dim loadXOffset As String
+        Dim loadYOffset As String
 
         If Not ListBox1.SelectedIndex = -1 Then
             If ListBox1.SelectedIndex = 0 Then
@@ -1285,6 +1300,8 @@ Public Class Form1
                 loadImghw = My.Settings.imghw1
                 loadX = My.Settings.x1
                 loadY = My.Settings.y1
+                loadXOffset = My.Settings.x_offset1
+                loadYOffset = My.Settings.y_offset1
             ElseIf ListBox1.SelectedIndex = 1 Then
                 loadType = My.Settings.type2
                 loadSize = My.Settings.size2
@@ -1293,6 +1310,8 @@ Public Class Form1
                 loadImghw = My.Settings.imghw2
                 loadX = My.Settings.x2
                 loadY = My.Settings.y2
+                loadXOffset = My.Settings.x_offset2
+                loadYOffset = My.Settings.y_offset2
             ElseIf ListBox1.SelectedIndex = 2 Then
                 loadType = My.Settings.type3
                 loadSize = My.Settings.size3
@@ -1301,6 +1320,8 @@ Public Class Form1
                 loadImghw = My.Settings.imghw3
                 loadX = My.Settings.x3
                 loadY = My.Settings.y3
+                loadXOffset = My.Settings.x_offset3
+                loadYOffset = My.Settings.y_offset3
             ElseIf ListBox1.SelectedIndex = 3 Then
                 loadType = My.Settings.type4
                 loadSize = My.Settings.size4
@@ -1309,6 +1330,8 @@ Public Class Form1
                 loadImghw = My.Settings.imghw4
                 loadX = My.Settings.x4
                 loadY = My.Settings.y4
+                loadXOffset = My.Settings.x_offset4
+                loadYOffset = My.Settings.y_offset4
             ElseIf ListBox1.SelectedIndex = 4 Then
                 loadType = My.Settings.type5
                 loadSize = My.Settings.size5
@@ -1317,6 +1340,8 @@ Public Class Form1
                 loadImghw = My.Settings.imghw5
                 loadX = My.Settings.x5
                 loadY = My.Settings.y5
+                loadXOffset = My.Settings.x_offset5
+                loadYOffset = My.Settings.y_offset5
             End If
 
 
@@ -1383,6 +1408,8 @@ Public Class Form1
             '===========x軸y軸=============
             NumericUpDown1.Value = loadY
             NumericUpDown2.Value = loadX
+            NumericUpDown5.Value = loadYOffset
+            NumericUpDown6.Value = loadXOffset
 
 
         End If
