@@ -806,6 +806,7 @@ Partial Class Form1
         '
         'NumericUpDown8
         '
+        Me.NumericUpDown8.Enabled = False
         Me.NumericUpDown8.Location = New System.Drawing.Point(100, 195)
         Me.NumericUpDown8.Name = "NumericUpDown8"
         Me.NumericUpDown8.Size = New System.Drawing.Size(111, 19)
@@ -813,6 +814,7 @@ Partial Class Form1
         '
         'NumericUpDown7
         '
+        Me.NumericUpDown7.Enabled = False
         Me.NumericUpDown7.Location = New System.Drawing.Point(100, 148)
         Me.NumericUpDown7.Name = "NumericUpDown7"
         Me.NumericUpDown7.Size = New System.Drawing.Size(111, 19)
@@ -981,7 +983,7 @@ Partial Class Form1
         Me.Label1.Name = "Label1"
         Me.Label1.Size = New System.Drawing.Size(93, 12)
         Me.Label1.TabIndex = 3
-        Me.Label1.Text = "CrossHexx v2.8.1"
+        Me.Label1.Text = "CrossHexx v2.8.2"
         '
         'PictureBox1
         '
