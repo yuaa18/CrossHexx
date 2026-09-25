@@ -95,13 +95,6 @@ Public Class Form1
     'プレビュー用をfとする
     Dim f As New Form2()
 
-    Dim setting1(,) As Integer = New Integer(4, 3) {
-                                          {1, My.Settings.type1, My.Settings.size1, My.Settings.color1},
-                                          {2, My.Settings.type2, My.Settings.size2, My.Settings.color2},
-                                          {3, My.Settings.type3, My.Settings.size3, My.Settings.color3},
-                                          {4, My.Settings.type4, My.Settings.size4, My.Settings.color4},
-                                          {5, My.Settings.type5, My.Settings.size5, My.Settings.color5}}
-
     'iniの読み取り
     Declare Function GetPrivateProfileInt Lib "kernel32" Alias "GetPrivateProfileIntA" (
     ByVal lpApplicationName As String,
@@ -187,11 +180,9 @@ Public Class Form1
         '再描画しないようにする
         ListBox1.BeginUpdate()
         '配列の内容を一つ一つ追加する
-        ListBox1.Items.Add(My.Settings.name1)
-        ListBox1.Items.Add(My.Settings.name2)
-        ListBox1.Items.Add(My.Settings.name3)
-        ListBox1.Items.Add(My.Settings.name4)
-        ListBox1.Items.Add(My.Settings.name5)
+        For i As Integer = 1 To PresetCount
+            ListBox1.Items.Add(CStr(My.Settings.Item("name" & i)))
+        Next
         '再描画するようにする
         ListBox1.EndUpdate()
 
@@ -381,6 +372,86 @@ Public Class Form1
 
     End Sub
 
+    '形状名("cross"/"dot"/"circle")とサイズ("small"/"large")からGraphicsPathを生成する。
+    'プレビューと実表示で座標を共有するための単一ソース。
+    Private Function BuildShapePath(shape As String, size As String) As GraphicsPath
+        Dim path As New GraphicsPath()
+        path.StartFigure()
+
+        If shape = "cross" Then 'クロスヘア
+            If size = "small" Then
+                path.AddLines(
+                {New Point(17, 16),
+                New Point(2, 17),
+                New Point(17, 18),
+                New Point(17, 32),
+                New Point(18, 18),
+                New Point(32, 17),
+                New Point(18, 16),
+                New Point(17, 2)})
+            Else
+                path.AddLines(
+                {New Point(16, 16),
+                New Point(2, 16),
+                New Point(2, 19),
+                New Point(16, 19),
+                New Point(16, 32),
+                New Point(19, 32),
+                New Point(19, 19),
+                New Point(32, 19),
+                New Point(32, 16),
+                New Point(19, 16),
+                New Point(19, 2),
+                New Point(16, 2)})
+            End If
+        ElseIf shape = "dot" Then
+            If size = "small" Then
+                path.AddEllipse(New Rectangle(15, 15, 4, 4))
+            Else
+                path.AddEllipse(New Rectangle(13, 13, 8, 8))
+            End If
+        ElseIf shape = "circle" Then
+            If size = "small" Then
+                path.AddEllipse(New Rectangle(2, 2, 30, 30))
+                path.AddEllipse(New Rectangle(3, 3, 28, 28))
+                path.AddEllipse(New Rectangle(15, 15, 4, 4))
+            Else
+                path.AddEllipse(New Rectangle(0, 0, 34, 34))
+                path.AddEllipse(New Rectangle(2, 2, 30, 30))
+                path.AddEllipse(New Rectangle(13, 13, 8, 8))
+            End If
+        End If
+
+        Return path
+    End Function
+
+    'フォームのRegionを差し替え、旧Regionを破棄する。
+    Private Sub ApplyRegion(target As Form, path As GraphicsPath)
+        Dim oldRegion As Region = target.Region
+        target.Region = New Region(path)
+        If oldRegion IsNot Nothing Then
+            oldRegion.Dispose()
+        End If
+    End Sub
+
+    'プレビュー用フォームfに形状を反映する。
+    Private Sub ShowPreview(path As GraphicsPath)
+        ApplyRegion(f, path)
+        'TopLevelをFalseにする
+        f.TopLevel = False
+        'フォームのコントロールに追加する
+        If Not Me.Controls.Contains(f) Then
+            Me.Controls.Add(f)
+        End If
+        'フォームを表示する
+        If TabControl1.SelectedIndex = 0 Then
+            f.Show()
+        End If
+        f.Location = New Point(150, 216)
+        '最前面へ移動
+        f.BringToFront()
+    End Sub
+
     Private Async Function crosshair(ByVal sizes_in As String, ByVal types_in As String) As Task
 
         If CheckBox2.Checked Then
@@ -395,75 +466,8 @@ Public Class Form1
 
         rWait = 1
 
-        Dim points() As Point = {}
-
-
-        'GraphicsPathの作成
-        Using path As New GraphicsPath
-            path.StartFigure()
-
-        If types_in = "cross" Then 'クロスヘア
-
-            If sizes_in = "small" Then
-
-                points =
-                {New Point(17, 16),
-                New Point(2, 17),
-                New Point(17, 18),
-                New Point(17, 32),
-                New Point(18, 18),
-                New Point(32, 17),
-                New Point(18, 16),
-                New Point(17, 2)}
-
-                path.AddLines(points)
-
-
-            ElseIf sizes_in = "large" Then
-                points =
-                {New Point(16, 16),
-                New Point(2, 16),
-                New Point(2, 19),
-                New Point(16, 19),
-                New Point(16, 32),
-                New Point(19, 32),
-                New Point(19, 19),
-                New Point(32, 19),
-                New Point(32, 16),
-                New Point(19, 16),
-                New Point(19, 2),
-                New Point(16, 2)}
-
-                path.AddLines(points)
-
-
-            End If
-
-        ElseIf types_in = "dot" Then
-            If sizes_in = "small" Then
-                path.AddEllipse(New Rectangle(15, 15, 4, 4))
-            ElseIf sizes_in = "large" Then
-                path.AddEllipse(New Rectangle(13, 13, 8, 8))
-            End If
-
-        ElseIf types_in = "circle" Then
-            If sizes_in = "small" Then
-                path.AddEllipse(New Rectangle(2, 2, 30, 30))
-                path.AddEllipse(New Rectangle(3, 3, 28, 28))
-                path.AddEllipse(New Rectangle(15, 15, 4, 4))
-            ElseIf sizes_in = "large" Then
-                path.AddEllipse(New Rectangle(0, 0, 34, 34))
-                path.AddEllipse(New Rectangle(2, 2, 30, 30))
-                path.AddEllipse(New Rectangle(13, 13, 8, 8))
-            End If
-        End If
-
-
-            Dim oldRegion As Region = Form2.Region
-            Form2.Region = New Region(path)
-            If oldRegion IsNot Nothing Then
-                oldRegion.Dispose()
-            End If
+        Using path As GraphicsPath = BuildShapePath(types_in, sizes_in)
+            ApplyRegion(Form2, path)
         End Using
     End Function
 
@@ -488,11 +492,7 @@ Public Class Form1
             path.AddLines(points)
 
 
-            Dim oldRegion As Region = Form2.Region
-            Form2.Region = New Region(path)
-            If oldRegion IsNot Nothing Then
-                oldRegion.Dispose()
-            End If
+            ApplyRegion(Form2, path)
         End Using
         Form2.PictureBox1.Image = PictureBox2.Image
 
@@ -519,7 +519,7 @@ Public Class Form1
                 End If
             Else
                 If RadioButton1.Checked = True Then
-                    preview1()
+                    bigpreview1()
                 ElseIf RadioButton2.Checked = True Then
                     bigpreview2()
                 ElseIf RadioButton3.Checked = True Then
@@ -533,178 +533,47 @@ Public Class Form1
 
     Private Sub preview1()
         '---------クロスヘアプレビュー用---------
-        Dim points() As Point =
-            {New Point(17, 16),
-             New Point(2, 17),
-             New Point(17, 18),
-             New Point(17, 32),
-             New Point(18, 18),
-             New Point(32, 17),
-             New Point(18, 16),
-             New Point(17, 2)}
+        Dim path As GraphicsPath = BuildShapePath("cross", "small")
 
-        Dim types() As Byte =
-            {Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line,
-             Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line,
-             Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line}
-        'GraphicsPathの作成
-        Dim path As New Drawing2D.GraphicsPath(points, types)
-        f.Region = New Region(path)
-        'TopLevelをFalseにする
-        f.TopLevel = False
-        'フォームのコントロールに追加する
-        Me.Controls.Add(f)
-        'フォームを表示する
-        If TabControl1.SelectedIndex = 0 Then
-            f.Show()
-        End If
-        f.Location = New Point(150, 216)
-        '最前面へ移動
-        f.BringToFront()
+        ShowPreview(path)
+        path.Dispose()
     End Sub
 
     Private Sub preview2()
-        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
+        Dim path As GraphicsPath = BuildShapePath("dot", "small")
 
-        SetLayeredWindowAttributes(Form2.Handle, 0, 255, LWA_ALPHA)
-        SetWindowPos(Form2.Handle, HWND_TOPMOST, 0, 0, 0, 0,
-            TOPMOST_FLAGS)
-        Dim path As New System.Drawing.Drawing2D.GraphicsPath()
-        '丸を描く
-        path.AddEllipse(New Rectangle(15, 15, 4, 4))
-
-        f.Region = New Region(path)
-        'TopLevelをFalseにする
-        f.TopLevel = False
-        'フォームのコントロールに追加する
-        Me.Controls.Add(f)
-        'フォームを表示する
-        If TabControl1.SelectedIndex = 0 Then
-            f.Show()
-        End If
-        f.Location = New Point(150, 216)
-        '最前面へ移動
-        f.BringToFront()
-
+        ShowPreview(path)
+        path.Dispose()
     End Sub
 
     Private Sub preview3()
-        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
+        Dim path As GraphicsPath = BuildShapePath("circle", "small")
 
-        SetLayeredWindowAttributes(Form2.Handle, 0, 255, LWA_ALPHA)
-        SetWindowPos(Form2.Handle, HWND_TOPMOST, 0, 0, 0, 0,
-            TOPMOST_FLAGS)
-        Dim path As New System.Drawing.Drawing2D.GraphicsPath()
-        '丸を描く
-        path.AddEllipse(New Rectangle(2, 2, 30, 30))
-        path.AddEllipse(New Rectangle(3, 3, 28, 28))
-        path.AddEllipse(New Rectangle(15, 15, 4, 4))
-
-        f.Region = New Region(path)
-        'TopLevelをFalseにする
-        f.TopLevel = False
-        'フォームのコントロールに追加する
-        Me.Controls.Add(f)
-        'フォームを表示する
-        If TabControl1.SelectedIndex = 0 Then
-            f.Show()
-        End If
-        f.Location = New Point(150, 216)
-        '最前面へ移動
-        f.BringToFront()
+        ShowPreview(path)
+        path.Dispose()
     End Sub
 
     Private Sub bigpreview1()
+        Dim path As GraphicsPath = BuildShapePath("cross", "large")
 
-        Dim points() As Point =
-        {New Point(16, 16),
-         New Point(2, 16),
-         New Point(2, 19),
-         New Point(16, 19),
-         New Point(16, 32),
-         New Point(19, 32),
-         New Point(19, 19),
-         New Point(32, 19),
-         New Point(32, 16),
-         New Point(19, 16),
-          New Point(19, 2),
-         New Point(16, 2)}
-
-        Dim types() As Byte =
-            {Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line,
-             Drawing.Drawing2D.PathPointType.Line,
-             Drawing.Drawing2D.PathPointType.Line,
-             Drawing.Drawing2D.PathPointType.Line,
-             Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line,
-             Drawing.Drawing2D.PathPointType.Line,
-             Drawing.Drawing2D.PathPointType.Line,
-            Drawing.Drawing2D.PathPointType.Line}
-        'GraphicsPathの作成
-        Dim path As New Drawing2D.GraphicsPath(points, types)
-
-        f.Region = New Region(path)
-        'TopLevelをFalseにする
-        f.TopLevel = False
-        'フォームのコントロールに追加する
-        Me.Controls.Add(f)
-        'フォームを表示する
-        If TabControl1.SelectedIndex = 0 Then
-            f.Show()
-        End If
-        f.Location = New Point(150, 216)
-        '最前面へ移動
-        f.BringToFront()
+        ShowPreview(path)
+        path.Dispose()
     End Sub
 
     Private Sub bigpreview2()
 
-        Dim path As New System.Drawing.Drawing2D.GraphicsPath()
-        '丸を描く
-        path.AddEllipse(New Rectangle(13, 13, 8, 8))
+        Dim path As GraphicsPath = BuildShapePath("dot", "large")
 
-        f.Region = New Region(path)
-        'TopLevelをFalseにする
-        f.TopLevel = False
-        'フォームのコントロールに追加する
-        Me.Controls.Add(f)
-        'フォームを表示する
-        If TabControl1.SelectedIndex = 0 Then
-            f.Show()
-        End If
-        f.Location = New Point(150, 216)
-        '最前面へ移動
-        f.BringToFront()
+        ShowPreview(path)
+        path.Dispose()
     End Sub
 
     Private Sub bigpreview3()
 
-        Dim path As New System.Drawing.Drawing2D.GraphicsPath()
-        '丸を描く
-        path.AddEllipse(New Rectangle(0, 0, 34, 34))
-        path.AddEllipse(New Rectangle(2, 2, 30, 30))
-        path.AddEllipse(New Rectangle(13, 13, 8, 8))
+        Dim path As GraphicsPath = BuildShapePath("circle", "large")
 
-        f.Region = New Region(path)
-        'TopLevelをFalseにする
-        f.TopLevel = False
-        'フォームのコントロールに追加する
-        Me.Controls.Add(f)
-        'フォームを表示する
-        If TabControl1.SelectedIndex = 0 Then
-            f.Show()
-        End If
-        f.Location = New Point(150, 216)
-        '最前面へ移動
-        f.BringToFront()
+        ShowPreview(path)
+        path.Dispose()
     End Sub
 
     Private Async Sub RadioButton4_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton4.CheckedChanged
@@ -1176,73 +1045,109 @@ Public Class Form1
 
     End Sub
 
+    'プリセット1件分の設定値。My.SettingsのtypeN/sizeN/...群と1対1に対応する。
+    Private Class PresetData
+        Public PType As Integer
+        Public PSize As Integer
+        Public PColor As String
+        Public PName As String
+        Public PImg As String
+        Public PImghw As String
+        Public PX As Integer
+        Public PY As Integer
+        Public PXOffset As Integer
+        Public PYOffset As Integer
+    End Class
+
+    Private Const PresetCount As Integer = 5
+
+    Private Function ReadPreset(index As Integer) As PresetData
+        Dim d As New PresetData()
+        d.PType = CInt(My.Settings.Item("type" & index))
+        d.PSize = CInt(My.Settings.Item("size" & index))
+        d.PColor = CStr(My.Settings.Item("color" & index))
+        d.PName = CStr(My.Settings.Item("name" & index))
+        d.PImg = CStr(My.Settings.Item("img" & index))
+        d.PImghw = CStr(My.Settings.Item("imghw" & index))
+        d.PX = CInt(My.Settings.Item("x" & index))
+        d.PY = CInt(My.Settings.Item("y" & index))
+        d.PXOffset = CInt(My.Settings.Item("x_offset" & index))
+        d.PYOffset = CInt(My.Settings.Item("y_offset" & index))
+        Return d
+    End Function
+
+    Private Sub WritePreset(index As Integer, d As PresetData)
+        My.Settings.Item("type" & index) = d.PType
+        My.Settings.Item("size" & index) = d.PSize
+        My.Settings.Item("color" & index) = d.PColor
+        My.Settings.Item("name" & index) = d.PName
+        My.Settings.Item("img" & index) = d.PImg
+        My.Settings.Item("imghw" & index) = d.PImghw
+        My.Settings.Item("x" & index) = d.PX
+        My.Settings.Item("y" & index) = d.PY
+        My.Settings.Item("x_offset" & index) = d.PXOffset
+        My.Settings.Item("y_offset" & index) = d.PYOffset
+    End Sub
+
     Private Sub Button10_Click(sender As Object, e As EventArgs) Handles Button10.Click
 
-        Dim wType As Integer
-        Dim wSize As Integer
-        Dim wColor As String
-        Dim wName As String
-        Dim wImg As String
-        Dim wImghw As String
-        Dim wX As String
-        Dim wY As String
-        Dim wXOffset As String
-        Dim wYOffset As String
+        Dim d As New PresetData()
 
 
 
         '===========種類=============
         If RadioButton1.Checked = True Then
-            wType = 0   'クロスヘア
+            d.PType = 0   'クロスヘア
         ElseIf RadioButton2.Checked = True Then
-            wType = 1   'ドット
+            d.PType = 1   'ドット
         ElseIf RadioButton3.Checked = True Then
-            wType = 2   'ドット＆サークル
+            d.PType = 2   'ドット＆サークル
         ElseIf RadioButton6.Checked = True Then
-            wType = 3   '画像
+            d.PType = 3   '画像
         End If
 
         '===========大きさ=============
         If RadioButton4.Checked = True Then
-            wSize = 0   'Medium
+            d.PSize = 0   'Medium
         ElseIf RadioButton5.Checked = True Then
-            wSize = 1   'Large
+            d.PSize = 1   'Large
         End If
 
         '===========色=============
-        wColor = TextBox1.Text & "," & TextBox2.Text & "," & TextBox3.Text
+        d.PColor = TextBox1.Text & "," & TextBox2.Text & "," & TextBox3.Text
 
 
         '===========名前=============
-        wName = TextBox4.Text
+        d.PName = TextBox4.Text
 
         '===========画像=============
-        wImg = TextBox5.Text
+        d.PImg = TextBox5.Text
 
         '===========画像の設定=============
         If RadioButton7.Checked = True Then
             '縮小
-            wImghw = "0,0,0"
+            d.PImghw = "0,0,0"
         ElseIf RadioButton8.Checked Then
             '原寸大
-            wImghw = "1,0,0"
+            d.PImghw = "1,0,0"
         Else
             '指定
-            wImghw = "3," & NumericUpDown3.Text & "," & NumericUpDown4.Text
+            d.PImghw = "3," & NumericUpDown3.Text & "," & NumericUpDown4.Text
         End If
 
         '===========x軸y軸=============
-        wY = NumericUpDown1.Value
-        wX = NumericUpDown2.Value
-        wYOffset = NumericUpDown5.Value
-        wXOffset = NumericUpDown6.Value
+        d.PY = CInt(NumericUpDown1.Value)
+        d.PX = CInt(NumericUpDown2.Value)
+        d.PYOffset = CInt(NumericUpDown5.Value)
+        d.PXOffset = CInt(NumericUpDown6.Value)
 
 
         '画像ファイルを読み込んで、Imageオブジェクトとして取得する
-        If wType = 3 Then
+        If d.PType = 3 Then
 
             Try
-                Image.FromFile(wImg)
+                Using tmp As Image = Image.FromFile(d.PImg)
+                End Using
             Catch ex As System.OutOfMemoryException
                 MsgBox("ファイルが正しくありません。")
                 Return
@@ -1256,61 +1161,8 @@ Public Class Form1
         End If
 
         'それぞれ対応したセッティングに入れる
-        If ListBox1.SelectedIndex = 0 Then
-            My.Settings.type1 = wType
-            My.Settings.size1 = wSize
-            My.Settings.color1 = wColor
-            My.Settings.name1 = wName
-            My.Settings.img1 = wImg
-            My.Settings.imghw1 = wImghw
-            My.Settings.x1 = wX
-            My.Settings.y1 = wY
-            My.Settings.x_offset1 = wXOffset
-            My.Settings.y_offset1 = wYOffset
-        ElseIf ListBox1.SelectedIndex = 1 Then
-            My.Settings.type2 = wType
-            My.Settings.size2 = wSize
-            My.Settings.color2 = wColor
-            My.Settings.name2 = wName
-            My.Settings.img2 = wImg
-            My.Settings.imghw2 = wImghw
-            My.Settings.x2 = wX
-            My.Settings.y2 = wY
-            My.Settings.x_offset2 = wXOffset
-            My.Settings.y_offset2 = wYOffset
-        ElseIf ListBox1.SelectedIndex = 2 Then
-            My.Settings.type3 = wType
-            My.Settings.size3 = wSize
-            My.Settings.color3 = wColor
-            My.Settings.name3 = wName
-            My.Settings.img3 = wImg
-            My.Settings.imghw3 = wImghw
-            My.Settings.x3 = wX
-            My.Settings.y3 = wY
-            My.Settings.x_offset3 = wXOffset
-            My.Settings.y_offset3 = wYOffset
-        ElseIf ListBox1.SelectedIndex = 3 Then
-            My.Settings.type4 = wType
-            My.Settings.size4 = wSize
-            My.Settings.color4 = wColor
-            My.Settings.name4 = wName
-            My.Settings.img4 = wImg
-            My.Settings.imghw4 = wImghw
-            My.Settings.x4 = wX
-            My.Settings.y4 = wY
-            My.Settings.x_offset4 = wXOffset
-            My.Settings.y_offset4 = wYOffset
-        ElseIf ListBox1.SelectedIndex = 4 Then
-            My.Settings.type5 = wType
-            My.Settings.size5 = wSize
-            My.Settings.color5 = wColor
-            My.Settings.name5 = wName
-            My.Settings.img5 = wImg
-            My.Settings.imghw5 = wImghw
-            My.Settings.x5 = wX
-            My.Settings.y5 = wY
-            My.Settings.x_offset5 = wXOffset
-            My.Settings.y_offset5 = wYOffset
+        If ListBox1.SelectedIndex >= 0 AndAlso ListBox1.SelectedIndex <= 4 Then
+            WritePreset(ListBox1.SelectedIndex + 1, d)
         End If
 
 
@@ -1322,68 +1174,20 @@ Public Class Form1
 
     Private Sub Button11_Click(sender As Object, e As EventArgs) Handles Button11.Click
 
-        Dim loadType As Integer
-        Dim loadSize As Integer
-        Dim loadColor As String
-        Dim loadImg As String
-        Dim loadImghw As String
-        Dim loadX As String
-        Dim loadY As String
-        Dim loadXOffset As String
-        Dim loadYOffset As String
+        If ListBox1.SelectedIndex < 0 OrElse ListBox1.SelectedIndex > PresetCount - 1 Then
+            Return
+        End If
 
-        If Not ListBox1.SelectedIndex = -1 Then
-            If ListBox1.SelectedIndex = 0 Then
-                loadType = My.Settings.type1
-                loadSize = My.Settings.size1
-                loadColor = My.Settings.color1
-                loadImg = My.Settings.img1
-                loadImghw = My.Settings.imghw1
-                loadX = My.Settings.x1
-                loadY = My.Settings.y1
-                loadXOffset = My.Settings.x_offset1
-                loadYOffset = My.Settings.y_offset1
-            ElseIf ListBox1.SelectedIndex = 1 Then
-                loadType = My.Settings.type2
-                loadSize = My.Settings.size2
-                loadColor = My.Settings.color2
-                loadImg = My.Settings.img2
-                loadImghw = My.Settings.imghw2
-                loadX = My.Settings.x2
-                loadY = My.Settings.y2
-                loadXOffset = My.Settings.x_offset2
-                loadYOffset = My.Settings.y_offset2
-            ElseIf ListBox1.SelectedIndex = 2 Then
-                loadType = My.Settings.type3
-                loadSize = My.Settings.size3
-                loadColor = My.Settings.color3
-                loadImg = My.Settings.img3
-                loadImghw = My.Settings.imghw3
-                loadX = My.Settings.x3
-                loadY = My.Settings.y3
-                loadXOffset = My.Settings.x_offset3
-                loadYOffset = My.Settings.y_offset3
-            ElseIf ListBox1.SelectedIndex = 3 Then
-                loadType = My.Settings.type4
-                loadSize = My.Settings.size4
-                loadColor = My.Settings.color4
-                loadImg = My.Settings.img4
-                loadImghw = My.Settings.imghw4
-                loadX = My.Settings.x4
-                loadY = My.Settings.y4
-                loadXOffset = My.Settings.x_offset4
-                loadYOffset = My.Settings.y_offset4
-            ElseIf ListBox1.SelectedIndex = 4 Then
-                loadType = My.Settings.type5
-                loadSize = My.Settings.size5
-                loadColor = My.Settings.color5
-                loadImg = My.Settings.img5
-                loadImghw = My.Settings.imghw5
-                loadX = My.Settings.x5
-                loadY = My.Settings.y5
-                loadXOffset = My.Settings.x_offset5
-                loadYOffset = My.Settings.y_offset5
-            End If
+        Dim d As PresetData = ReadPreset(ListBox1.SelectedIndex + 1)
+        Dim loadType As Integer = d.PType
+        Dim loadSize As Integer = d.PSize
+        Dim loadColor As String = d.PColor
+        Dim loadImg As String = d.PImg
+        Dim loadImghw As String = d.PImghw
+        Dim loadX As String = CStr(d.PX)
+        Dim loadY As String = CStr(d.PY)
+        Dim loadXOffset As String = CStr(d.PXOffset)
+        Dim loadYOffset As String = CStr(d.PYOffset)
 
 
 
@@ -1472,8 +1276,6 @@ Public Class Form1
             SetAxisValue(NumericUpDown5, loadYOffset)
             SetAxisValue(NumericUpDown6, loadXOffset)
 
-
-        End If
     End Sub
 
     Private Function settingImg(path, type)
@@ -1543,59 +1345,18 @@ Public Class Form1
     Private Sub ListBox1_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListBox1.SelectedIndexChanged
 
         'リスト外をクリックしたときは何もしない
-        If ListBox1.SelectedIndex = -1 Then
+        If ListBox1.SelectedIndex < 0 OrElse ListBox1.SelectedIndex > PresetCount - 1 Then
             Return
         End If
 
-        Dim pType As String
-        Dim pSize As String
-        Dim pColor As String
-        Dim pImg As String
-        Dim pX As String
-        Dim pY As String
-
-
-        If ListBox1.SelectedIndex = 0 Then
-            pType = My.Settings.type1
-            pSize = My.Settings.size1
-            pColor = My.Settings.color1
-            TextBox4.Text = My.Settings.name1
-            pImg = My.Settings.img1
-            pX = My.Settings.x1
-            pY = My.Settings.y1
-        ElseIf ListBox1.SelectedIndex = 1 Then
-            pType = My.Settings.type2
-            pSize = My.Settings.size2
-            pColor = My.Settings.color2
-            TextBox4.Text = My.Settings.name2
-            pImg = My.Settings.img2
-            pX = My.Settings.x2
-            pY = My.Settings.y2
-        ElseIf ListBox1.SelectedIndex = 2 Then
-            pType = My.Settings.type3
-            pSize = My.Settings.size3
-            pColor = My.Settings.color3
-            TextBox4.Text = My.Settings.name3
-            pImg = My.Settings.img3
-            pX = My.Settings.x3
-            pY = My.Settings.y3
-        ElseIf ListBox1.SelectedIndex = 3 Then
-            pType = My.Settings.type4
-            pSize = My.Settings.size4
-            pColor = My.Settings.color4
-            TextBox4.Text = My.Settings.name4
-            pImg = My.Settings.img4
-            pX = My.Settings.x4
-            pY = My.Settings.y4
-        ElseIf ListBox1.SelectedIndex = 4 Then
-            pType = My.Settings.type5
-            pSize = My.Settings.size5
-            pColor = My.Settings.color5
-            TextBox4.Text = My.Settings.name5
-            pImg = My.Settings.img5
-            pX = My.Settings.x5
-            pY = My.Settings.y5
-        End If
+        Dim d As PresetData = ReadPreset(ListBox1.SelectedIndex + 1)
+        Dim pType As Integer = d.PType
+        Dim pSize As Integer = d.PSize
+        Dim pColor As String = d.PColor
+        Dim pImg As String = d.PImg
+        Dim pX As String = CStr(d.PX)
+        Dim pY As String = CStr(d.PY)
+        TextBox4.Text = d.PName
 
 
         '===========種類=============
