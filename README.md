@@ -18,6 +18,7 @@ CrossHexxは、クロスヘア（レティクル）を画面上に表示する�
 
 ## Build
 * GitHub Actionsが `master` へのpush毎にReleaseビルドし、Artifactsに `CrossHexx-Release` を保存します
+* 正式版は `v*` タグのpushで自動作成され、Releasesページからzipで取得できます
 * ローカルビルドには Visual Studio 2022（.NET Framework 4.8 targeting pack）が必要です
   * `CrossHexx.sln` を開いてReleaseビルド
 

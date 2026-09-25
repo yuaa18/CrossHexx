@@ -3,12 +3,13 @@ name: Build
 on:
   push:
     branches: [master]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
-    # レガシーな VB2012 / .NET Framework 4.5 向けに windows-2022 に固定
+    # レガシーな VB2012 / .NET Framework 4.x 向けに windows-2022 に固定
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -23,3 +24,15 @@ jobs:
         with:
           name: CrossHexx-Release
           path: CrossHexx/bin/Release/
+
+      - name: Zip release files
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: Compress-Archive -Path CrossHexx/bin/Release/* -DestinationPath CrossHexx-${{ github.ref_name }}.zip
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: CrossHexx-${{ github.ref_name }}.zip
+          generate_release_notes: true
