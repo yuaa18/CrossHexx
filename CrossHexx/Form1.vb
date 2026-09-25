@@ -843,35 +843,26 @@ Public Class Form1
     End Sub
 
     Public Sub y_axis()
-        NumHeight = FirstHeight
-
-        If (NumericUpDown1.Value + NumericUpDown5.Value) > (Integer.Parse(NumericUpDown1.Text) + Integer.Parse(NumericUpDown5.Text)) Then
-            '上へ移動
-            Form2.Top -= 1
-            DisHeight -= 1
-        ElseIf (NumericUpDown1.Value + NumericUpDown5.Value) < (Integer.Parse(NumericUpDown1.Text) + Integer.Parse(NumericUpDown5.Text)) Then
-            Form2.Top += 1
-            DisHeight += 1
-        End If
-        NumHeight -= (NumericUpDown1.Value + NumericUpDown5.Value)
-        DisHeight = FirstHeight - (NumericUpDown1.Value + NumericUpDown5.Value)
+        NumHeight = FirstHeight - CInt(NumericUpDown1.Value + NumericUpDown5.Value)
+        DisHeight = NumHeight
         Form2.Location = New Point(DisWidth, NumHeight)
 
     End Sub
 
     Public Sub x_axis()
-        NumWidth = FirstWidth
-
-        If (NumericUpDown2.Value + NumericUpDown6.Value) > (Integer.Parse(NumericUpDown2.Text) + Integer.Parse(NumericUpDown6.Text)) Then
-            Form2.Left += 1
-            DisWidth += 1
-        ElseIf (NumericUpDown2.Value + NumericUpDown6.Value) < (Integer.Parse(NumericUpDown2.Text) + Integer.Parse(NumericUpDown6.Text)) Then
-            Form2.Left -= 1
-            DisWidth -= 1
-        End If
-        NumWidth += (NumericUpDown2.Value + NumericUpDown6.Value)
-        DisWidth = FirstWidth + (NumericUpDown2.Value + NumericUpDown6.Value)
+        NumWidth = FirstWidth + CInt(NumericUpDown2.Value + NumericUpDown6.Value)
+        DisWidth = NumWidth
         Form2.Location = New Point(NumWidth, DisHeight)
+    End Sub
+
+    '設定値の文字列をNumericUpDownに安全に反映する。不正値・範囲外はクランプする。
+    Private Sub SetAxisValue(nud As NumericUpDown, text As String)
+        Dim v As Decimal
+        If Decimal.TryParse(CStr(text), v) Then
+            nud.Value = Math.Max(nud.Minimum, Math.Min(nud.Maximum, v))
+        Else
+            nud.Value = 0
+        End If
     End Sub
 
     Private Sub Button4_Click(sender As Object, e As EventArgs) Handles Button4.Click
@@ -1405,6 +1396,8 @@ Public Class Form1
                 RadioButton3.Checked = True
             ElseIf loadType = 3 Then
                 RadioButton6.Checked = True
+            Else
+                RadioButton1.Checked = True
             End If
 
             '===========大きさ=============
@@ -1412,18 +1405,30 @@ Public Class Form1
                 RadioButton4.Checked = True
             ElseIf loadSize = 1 Then
                 RadioButton5.Checked = True
+            Else
+                RadioButton4.Checked = True
             End If
 
             '===========色=============
             ' カンマ区切りで分割して配列に格納する
-            Dim stArrayData As String() = Split(loadColor, ",")
-            TextBox1.Text = stArrayData(0)
-            TextBox2.Text = stArrayData(1)
-            TextBox3.Text = stArrayData(2)
+            Dim stArrayData As String() = Split(CStr(loadColor), ",")
+            If stArrayData.Length >= 3 Then
+                TextBox1.Text = stArrayData(0).Trim()
+                TextBox2.Text = stArrayData(1).Trim()
+                TextBox3.Text = stArrayData(2).Trim()
+            Else
+                TextBox1.Text = "255"
+                TextBox2.Text = "0"
+                TextBox3.Text = "0"
+            End If
 
 
             '===========画像の設定=============
-            Dim imgArrayData As String() = Split(loadImghw, ",")
+            Dim imgArrayData As String() = Split(CStr(loadImghw), ",")
+            Dim imgMode As Integer = 0
+            If imgArrayData.Length >= 1 Then
+                Integer.TryParse(imgArrayData(0).Trim(), imgMode)
+            End If
 
             '画像
             If Not loadImg = "" Then
@@ -1431,13 +1436,19 @@ Public Class Form1
                 showpre()
 
                 Try
-                    If imgArrayData(0) = 3 Then 'NumericUpDownに画像の大きさを設定する
-                        NumericUpDown3.Value = imgArrayData(1)
-                        NumericUpDown4.Value = imgArrayData(2)
-                    Else
+                    If imgMode = 3 AndAlso imgArrayData.Length >= 3 Then 'NumericUpDownに画像の大きさを設定する
+                        Dim lw As Decimal
+                        Dim lh As Decimal
+                        If Decimal.TryParse(imgArrayData(1).Trim(), lw) Then
+                            NumericUpDown3.Value = Math.Max(NumericUpDown3.Minimum, Math.Min(NumericUpDown3.Maximum, lw))
+                        End If
+                        If Decimal.TryParse(imgArrayData(2).Trim(), lh) Then
+                            NumericUpDown4.Value = Math.Max(NumericUpDown4.Minimum, Math.Min(NumericUpDown4.Maximum, lh))
+                        End If
+                    ElseIf oriw > 0 AndAlso orih > 0 Then
 
-                        NumericUpDown3.Value = oriw
-                        NumericUpDown4.Value = orih
+                        NumericUpDown3.Value = Math.Max(NumericUpDown3.Minimum, Math.Min(NumericUpDown3.Maximum, oriw))
+                        NumericUpDown4.Value = Math.Max(NumericUpDown4.Minimum, Math.Min(NumericUpDown4.Maximum, orih))
                     End If
 
                 Catch ex As System.ArgumentOutOfRangeException
@@ -1447,19 +1458,19 @@ Public Class Form1
                 End Try
             End If
 
-            If imgArrayData(0) = 0 Then
+            If imgMode = 0 Then
                 RadioButton7.Checked = True
-            ElseIf imgArrayData(0) = 1 Then
+            ElseIf imgMode = 1 Then
                 RadioButton8.Checked = True
             Else
                 RadioButton9.Checked = True
             End If
 
             '===========x軸y軸=============
-            NumericUpDown1.Value = loadY
-            NumericUpDown2.Value = loadX
-            NumericUpDown5.Value = loadYOffset
-            NumericUpDown6.Value = loadXOffset
+            SetAxisValue(NumericUpDown1, loadY)
+            SetAxisValue(NumericUpDown2, loadX)
+            SetAxisValue(NumericUpDown5, loadYOffset)
+            SetAxisValue(NumericUpDown6, loadXOffset)
 
 
         End If
@@ -1606,15 +1617,30 @@ Public Class Form1
         End If
 
         '===========色=============
-        Dim stArrayData As String() = Split(pColor, ",")
-        Panel3.BackColor = Color.FromArgb(stArrayData(0), stArrayData(1), stArrayData(2))
+        Dim stArrayData As String() = Split(CStr(pColor), ",")
+        Dim pvR As Integer = 255
+        Dim pvG As Integer = 0
+        Dim pvB As Integer = 0
+        If stArrayData.Length >= 3 Then
+            Dim t As Integer
+            If Integer.TryParse(stArrayData(0).Trim(), t) Then
+                pvR = Math.Max(0, Math.Min(255, t))
+            End If
+            If Integer.TryParse(stArrayData(1).Trim(), t) Then
+                pvG = Math.Max(0, Math.Min(255, t))
+            End If
+            If Integer.TryParse(stArrayData(2).Trim(), t) Then
+                pvB = Math.Max(0, Math.Min(255, t))
+            End If
+        End If
+        Panel3.BackColor = Color.FromArgb(pvR, pvG, pvB)
 
         '===========画像=============
         settingImg(pImg, pType)
 
         '===========x軸y軸=============
-        NumericUpDown7.Value = pY
-        NumericUpDown8.Value = pX
+        SetAxisValue(NumericUpDown7, pY)
+        SetAxisValue(NumericUpDown8, pX)
 
 
     End Sub
@@ -1662,38 +1688,29 @@ Public Class Form1
 
 
     Private Sub MouseHook_MouseHook(sender As Object, e As MouseHookClass.MouseHookEventArgs) Handles MouseHook.MouseHook
-        Dim mStat As String
-
-        mStat = String.Format("{0}", e.Message)
-            If stat = 1 Then
-                If mStat = "RDown" Then
-                    Form2.Hide()
-                ElseIf mStat = "RUp" Then
-                    Form2.Show()
-                End If
+        If stat = 1 Then
+            If e.Message = MouseHookClass.MouseMessage.RDown Then
+                Form2.Hide()
+            ElseIf e.Message = MouseHookClass.MouseMessage.RUp Then
+                Form2.Show()
             End If
-
+        End If
 
     End Sub
 
     Private Sub CheckBox3_Checked(sender As Object, e As EventArgs) Handles CheckBox3.CheckedChanged
 
-        Select Case DirectCast(sender, CheckBox).CheckState
-            Case CheckState.Checked
-                CheckBox2.Enabled = False
-            Case CheckState.Unchecked
-                CheckBox2.Enabled = True
-        End Select
-
-        If MouseHook.Hooked = False Then
-                If MouseHook.MouseHookStart() = True Then
-
-                End If
-            Else
-                If MouseHook.MouseHookEnd() = True Then
-
-                End If
+        If CheckBox3.Checked Then
+            CheckBox2.Enabled = False
+            If Not MouseHook.Hooked Then
+                MouseHook.MouseHookStart()
             End If
+        Else
+            CheckBox2.Enabled = True
+            If MouseHook.Hooked Then
+                MouseHook.MouseHookEnd()
+            End If
+        End If
 
     End Sub
 
