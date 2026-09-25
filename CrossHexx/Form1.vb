@@ -48,7 +48,7 @@ Public Class Form1
 
     '-------------ウィンドウ取得------------
 
-    Public Declare Function FindWindowA Lib "user32" (ByVal cnm As String, ByVal cap As String) As Integer
+    Public Declare Function FindWindowA Lib "user32" (ByVal cnm As String, ByVal cap As String) As IntPtr
 
     Dim stat As Integer
     Dim count As Integer
@@ -909,10 +909,17 @@ Public Class Form1
     End Sub
 
     Private Sub Button5_Click(sender As Object, e As EventArgs) Handles Button5.Click
-        Dim hwindow As Integer
+        Dim hwindow As IntPtr
         Dim x = ComboBox1.Text
         hwindow = FindWindowA(vbNullString, x)
         Dim nRect As RECT
+
+        If hwindow = IntPtr.Zero Then
+            If Not x = "" Then
+                MsgBox("取得失敗")
+            End If
+            Return
+        End If
 
         Call GetWindowRect(hwindow, nRect)
         If nRect.Top = -32000 Then
@@ -1709,26 +1716,26 @@ Public Delegate Function CallBack(ByVal nCode As Integer, ByVal wParam As IntPtr
 Public Class MouseHookClass
 
     Dim WH_MOUSE_LL As Integer = 14
-    Shared hHook As Integer = 0
+    Shared hHook As IntPtr = IntPtr.Zero
 
     Private hookproc As CallBack
 
     <DllImport("kernel32.dll", CharSet:=CharSet.Auto, CallingConvention:=CallingConvention.StdCall)>
-    Public Overloads Shared Function GetModuleHandle(lpModuleName As String) As IntPtr
+    Public Overloads Shared Function GetModuleHandle(lpModuleName As IntPtr) As IntPtr
     End Function
 
     'Import for the SetWindowsHookEx function.
     <DllImport("User32.dll", CharSet:=CharSet.Auto, CallingConvention:=CallingConvention.StdCall)>
-    Public Overloads Shared Function SetWindowsHookEx(ByVal idHook As Integer, ByVal HookProc As CallBack, ByVal hInstance As IntPtr, ByVal wParam As Integer) As Integer
+    Public Overloads Shared Function SetWindowsHookEx(ByVal idHook As Integer, ByVal HookProc As CallBack, ByVal hInstance As IntPtr, ByVal wParam As Integer) As IntPtr
     End Function
 
     'Import for the CallNextHookEx function.
     <DllImport("User32.dll", CharSet:=CharSet.Auto, CallingConvention:=CallingConvention.StdCall)>
-    Public Overloads Shared Function CallNextHookEx(ByVal idHook As Integer, ByVal nCode As Integer, ByVal wParam As IntPtr, ByVal lParam As IntPtr) As Integer
+    Public Overloads Shared Function CallNextHookEx(ByVal idHook As IntPtr, ByVal nCode As Integer, ByVal wParam As IntPtr, ByVal lParam As IntPtr) As Integer
     End Function
     'Import for the UnhookWindowsHookEx function.
     <DllImport("User32.dll", CharSet:=CharSet.Auto, CallingConvention:=CallingConvention.StdCall)>
-    Public Overloads Shared Function UnhookWindowsHookEx(ByVal idHook As Integer) As Boolean
+    Public Overloads Shared Function UnhookWindowsHookEx(ByVal idHook As IntPtr) As Boolean
     End Function
 
     'Point structure declaration.
@@ -1786,7 +1793,7 @@ Public Class MouseHookClass
     ''' <remarks></remarks>
     Public ReadOnly Property Hooked As Boolean
         Get
-            Return If(hHook = 0, False, True)
+            Return If(hHook.Equals(IntPtr.Zero), False, True)
         End Get
     End Property
 
@@ -1796,11 +1803,11 @@ Public Class MouseHookClass
     ''' <returns>False:フックに失敗もしくはフック済み True:フックに成功</returns>
     ''' <remarks></remarks>
     Public Function MouseHookStart() As Boolean
-        If hHook.Equals(0) Then
+        If hHook.Equals(IntPtr.Zero) Then
             'マウスフックを開始する
             hookproc = AddressOf MouseLLHookProc
             hHook = SetWindowsHookEx(WH_MOUSE_LL, hookproc, GetModuleHandle(IntPtr.Zero), 0)
-            If hHook.Equals(0) Then
+            If hHook.Equals(IntPtr.Zero) Then
                 Return False
             Else
                 Return True
@@ -1818,7 +1825,7 @@ Public Class MouseHookClass
     ''' <returns>False:フック解除に失敗もしくはフックしていない True:フック解除に成功</returns>
     ''' <remarks></remarks>
     Public Function MouseHookEnd() As Boolean
-        If hHook.Equals(0) Then
+        If hHook.Equals(IntPtr.Zero) Then
             'マウスフックが開始されていない
             Return False
         Else
@@ -1828,7 +1835,7 @@ Public Class MouseHookClass
             If ret.Equals(False) Then
                 Return False
             Else
-                hHook = 0
+                hHook = IntPtr.Zero
                 Return True
             End If
         End If
