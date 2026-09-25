@@ -109,6 +109,10 @@ Public Class Form1
         TextBox2.Text = colorG
         TextBox3.Text = colorB
 
+        'バージョン表記はアセンブリから取得（一元化）
+        Dim ver As Version = My.Application.Info.Version
+        Label1.Text = "CrossHexx v" & ver.Major & "." & ver.Minor & "." & ver.Build
+
         Dim maxHeight As Integer = Rect2.Height / 2
         Dim maxWidth As Integer = Rect2.Width / 2
 
