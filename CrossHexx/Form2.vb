@@ -43,7 +43,7 @@ Public Class Form2
   
 
     Private Sub Form2_MouseHover(sender As Object, e As EventArgs) Handles MyBase.MouseHover
-        SetWindowLong(Me.Handle, GWL_EXSTYLE, GetWindowLong(Me.Handle, GWL_EXSTYLE) Xor WS_EX_LAYERED Xor WS_EX_TRANSPARENT)
+        SetWindowLong(Me.Handle, GWL_EXSTYLE, GetWindowLong(Me.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
 
         SetLayeredWindowAttributes(Me.Handle, 0, 255, LWA_ALPHA)
         SetWindowPos(Me.Handle, HWND_TOPMOST, 0, 0, 0, 0, _
@@ -51,7 +51,7 @@ Public Class Form2
     End Sub
 
     Private Sub PictureBox1_MouseHover(sender As Object, e As EventArgs)
-        SetWindowLong(Me.Handle, GWL_EXSTYLE, GetWindowLong(Me.Handle, GWL_EXSTYLE) Xor WS_EX_LAYERED Xor WS_EX_TRANSPARENT)
+        SetWindowLong(Me.Handle, GWL_EXSTYLE, GetWindowLong(Me.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
 
         SetLayeredWindowAttributes(Me.Handle, 0, 255, LWA_ALPHA)
         SetWindowPos(Me.Handle, HWND_TOPMOST, 0, 0, 0, 0, _

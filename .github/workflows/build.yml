@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # レガシーな VB2012 / .NET Framework 4.5 向けに windows-2022 に固定
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release
+        run: msbuild CrossHexx.sln /p:Configuration=Release /v:minimal
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrossHexx-Release
+          path: CrossHexx/bin/Release/

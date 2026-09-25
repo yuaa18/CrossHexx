@@ -167,7 +167,7 @@ Public Class Form1
         ListBox1.SelectedIndex = My.Settings.def_set
         Button11_Click(Nothing, Nothing)
 
-        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Xor WS_EX_LAYERED Xor WS_EX_TRANSPARENT)
+        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
 
         SetLayeredWindowAttributes(Form2.Handle, 0, 255, LWA_ALPHA)
         SetWindowPos(Form2.Handle, HWND_TOPMOST, 0, 0, 0, 0,
@@ -210,7 +210,7 @@ Public Class Form1
         End If
     End Sub
 
-    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+    Private Async Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
         Button1.Enabled = False
         Button2.Enabled = True
         '起動中ならば1
@@ -227,7 +227,7 @@ Public Class Form1
             Else
                 c_size = "large"
             End If
-            crosshair(c_size, c_type)
+            Await crosshair(c_size, c_type)
         ElseIf RadioButton2.Checked = True Then
             'ドット
             c_type = "dot"
@@ -236,7 +236,7 @@ Public Class Form1
             Else
                 c_size = "large"
             End If
-            crosshair(c_size, c_type)
+            Await crosshair(c_size, c_type)
         ElseIf RadioButton3.Checked = True Then
             'ドット&サークル
             c_type = "circle"
@@ -245,7 +245,7 @@ Public Class Form1
             Else
                 c_size = "large"
             End If
-            crosshair(c_size, c_type)
+            Await crosshair(c_size, c_type)
         ElseIf RadioButton6.Checked = True Then
 
             showimage()
@@ -264,16 +264,12 @@ Public Class Form1
         '停止中ならば0
         stat = 0
         rWait = 0
-        If statImage = 1 Then
-            Form2.Close()
-        Else
-            Form2.Hide()
-        End If
+        Form2.Hide()
 
     End Sub
 
 
-    Private Sub RadioButton1_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton1.CheckedChanged
+    Private Async Sub RadioButton1_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton1.CheckedChanged
         If statImage = 1 Then
             setWin()
         End If
@@ -287,7 +283,7 @@ Public Class Form1
             ElseIf RadioButton4.Checked = False Then
                 c_size = "large"
             End If
-            crosshair(c_size, c_type)
+            Await crosshair(c_size, c_type)
 
             Form2.Show()
             Form2.Location = New Point(DisWidth, DisHeight)
@@ -305,7 +301,7 @@ Public Class Form1
 
     End Sub
 
-    Private Sub RadioButton2_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton2.CheckedChanged
+    Private Async Sub RadioButton2_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton2.CheckedChanged
         If statImage = 1 Then
             setWin()
         End If
@@ -317,7 +313,7 @@ Public Class Form1
             ElseIf RadioButton4.Checked = False Then
                 c_size = "large"
             End If
-            crosshair(c_size, c_type)
+            Await crosshair(c_size, c_type)
 
             Form2.Show()
             Form2.Location = New Point(DisWidth, DisHeight)
@@ -334,7 +330,7 @@ Public Class Form1
 
     End Sub
 
-    Private Sub RadioButton3_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton3.CheckedChanged
+    Private Async Sub RadioButton3_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton3.CheckedChanged
         If statImage = 1 Then
             setWin()
         End If
@@ -348,7 +344,7 @@ Public Class Form1
             ElseIf RadioButton4.Checked = False Then
                 c_size = "large"
             End If
-            crosshair(c_size, c_type)
+            Await crosshair(c_size, c_type)
 
             Form2.Show()
             Form2.Location = New Point(DisWidth, DisHeight)
@@ -372,7 +368,7 @@ Public Class Form1
 
         If stat = 1 Then
 
-            Form2.Close()
+            Form2.Hide()
             showimage()
             Form2.Show()
             Form2.Location = New Point(DisWidth, DisHeight)
@@ -385,11 +381,16 @@ Public Class Form1
 
     End Sub
 
-    Private Sub crosshair(ByVal sizes_in As String, ByVal types_in As String)
+    Private Async Function crosshair(ByVal sizes_in As String, ByVal types_in As String) As Task
 
         If CheckBox2.Checked Then
-            fWait = TextBox6.Text
-            System.Threading.Thread.Sleep(fWait * 1000)
+            Dim parsedWait As Integer
+            If Integer.TryParse(TextBox6.Text, parsedWait) Then
+                If parsedWait < 0 Then parsedWait = 0
+                If parsedWait > 60 Then parsedWait = 60
+                fWait = parsedWait
+                Await System.Threading.Tasks.Task.Delay(fWait * 1000)
+            End If
         End If
 
         rWait = 1
@@ -398,8 +399,8 @@ Public Class Form1
 
 
         'GraphicsPathの作成
-        Dim path As New GraphicsPath
-        path.StartFigure()
+        Using path As New GraphicsPath
+            path.StartFigure()
 
         If types_in = "cross" Then 'クロスヘア
 
@@ -458,8 +459,13 @@ Public Class Form1
         End If
 
 
-        Form2.Region = New Region(path)
-    End Sub
+            Dim oldRegion As Region = Form2.Region
+            Form2.Region = New Region(path)
+            If oldRegion IsNot Nothing Then
+                oldRegion.Dispose()
+            End If
+        End Using
+    End Function
 
     Private Sub showimage()
 
@@ -470,19 +476,24 @@ Public Class Form1
 
 
         'GraphicsPathの作成
-        Dim path As New GraphicsPath
-        path.StartFigure()
+        Using path As New GraphicsPath
+            path.StartFigure()
 
-        points =
-        {New Point(0, 0),
-        New Point(0, h),
-        New Point(w, h),
-        New Point(w, 0)}
+            points =
+            {New Point(0, 0),
+            New Point(0, h),
+            New Point(w, h),
+            New Point(w, 0)}
 
-        path.AddLines(points)
+            path.AddLines(points)
 
 
-        Form2.Region = New Region(path)
+            Dim oldRegion As Region = Form2.Region
+            Form2.Region = New Region(path)
+            If oldRegion IsNot Nothing Then
+                oldRegion.Dispose()
+            End If
+        End Using
         Form2.PictureBox1.Image = PictureBox2.Image
 
 
@@ -558,7 +569,7 @@ Public Class Form1
     End Sub
 
     Private Sub preview2()
-        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Xor WS_EX_LAYERED Xor WS_EX_TRANSPARENT)
+        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
 
         SetLayeredWindowAttributes(Form2.Handle, 0, 255, LWA_ALPHA)
         SetWindowPos(Form2.Handle, HWND_TOPMOST, 0, 0, 0, 0,
@@ -583,7 +594,7 @@ Public Class Form1
     End Sub
 
     Private Sub preview3()
-        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Xor WS_EX_LAYERED Xor WS_EX_TRANSPARENT)
+        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
 
         SetLayeredWindowAttributes(Form2.Handle, 0, 255, LWA_ALPHA)
         SetWindowPos(Form2.Handle, HWND_TOPMOST, 0, 0, 0, 0,
@@ -696,7 +707,7 @@ Public Class Form1
         f.BringToFront()
     End Sub
 
-    Private Sub RadioButton4_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton4.CheckedChanged
+    Private Async Sub RadioButton4_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton4.CheckedChanged
         'Medium
 
         'Form2.Hide()
@@ -717,7 +728,7 @@ Public Class Form1
                 ElseIf RadioButton3.Checked = True Then
                     c_type = "circle"
                 End If
-                crosshair(c_size, c_type)
+                Await crosshair(c_size, c_type)
 
                 Form2.Show()
                 Form2.Location = New Point(DisWidth, DisHeight)
@@ -725,7 +736,7 @@ Public Class Form1
         End If
     End Sub
 
-    Private Sub RadioButton5_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton5.CheckedChanged
+    Private Async Sub RadioButton5_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton5.CheckedChanged
         'large
 
         'Form2.Hide()
@@ -746,7 +757,7 @@ Public Class Form1
                 ElseIf RadioButton3.Checked = True Then
                     c_type = "circle"
                 End If
-                crosshair(c_size, c_type)
+                Await crosshair(c_size, c_type)
 
                 Form2.Show()
                 Form2.Location = New Point(DisWidth, DisHeight)
@@ -758,27 +769,48 @@ Public Class Form1
 
     Private Sub TextBox1_TextChanged(sender As Object, e As EventArgs) Handles TextBox1.TextChanged
 
-        If TextBox1.Text > 256 Then
-            TextBox1.Text = 255
+        Dim v1 As Integer
+        If Not Integer.TryParse(TextBox1.Text, v1) Then
+            Return
         End If
-        colorR = TextBox1.Text
+        If v1 > 255 Then
+            v1 = 255
+            TextBox1.Text = "255"
+        ElseIf v1 < 0 Then
+            v1 = 0
+        End If
+        colorR = v1
         colorset()
     End Sub
 
 
     Private Sub TextBox2_TextChanged(sender As Object, e As EventArgs) Handles TextBox2.TextChanged
-        If TextBox2.Text > 256 Then
-            TextBox2.Text = 255
+        Dim v2 As Integer
+        If Not Integer.TryParse(TextBox2.Text, v2) Then
+            Return
         End If
-        colorG = TextBox2.Text
+        If v2 > 255 Then
+            v2 = 255
+            TextBox2.Text = "255"
+        ElseIf v2 < 0 Then
+            v2 = 0
+        End If
+        colorG = v2
         colorset()
     End Sub
 
     Private Sub TextBox3_TextChanged(sender As Object, e As EventArgs) Handles TextBox3.TextChanged
-        If TextBox3.Text > 256 Then
-            TextBox3.Text = 255
+        Dim v3 As Integer
+        If Not Integer.TryParse(TextBox3.Text, v3) Then
+            Return
         End If
-        colorB = TextBox3.Text
+        If v3 > 255 Then
+            v3 = 255
+            TextBox3.Text = "255"
+        ElseIf v3 < 0 Then
+            v3 = 0
+        End If
+        colorB = v3
         colorset()
     End Sub
 
@@ -1012,20 +1044,20 @@ Public Class Form1
             showpre()
         End If
     End Sub
-    Private Function showpre()
+    Private Sub showpre()
 
         '画像ファイルを読み込んで、Imageオブジェクトとして取得する
         Try
             img = Image.FromFile(ofd.FileName)
         Catch ex As System.OutOfMemoryException
             MsgBox("ファイルが正しくありません。", MsgBoxStyle.Exclamation)
-            Return Nothing
+            Return
         Catch ex As System.ArgumentException
             MsgBox("ファイルの形式が無効です。", MsgBoxStyle.Exclamation)
-            Return Nothing
+            Return
         Catch ex As System.IO.FileNotFoundException
             MsgBox("ファイルが存在しません。", MsgBoxStyle.Exclamation)
-            Return Nothing
+            Return
         End Try
 
         'ファイルパスをtextbox5に入れる
@@ -1061,26 +1093,34 @@ Public Class Form1
             h = NumericUpDown4.Value
         End If
 
-        Dim canvas As New Bitmap(w, h)
-        'ImageオブジェクトのGraphicsオブジェクトを作成する
-        Dim g As Graphics = Graphics.FromImage(canvas)
+        If w <= 0 OrElse h <= 0 Then
+            img.Dispose()
+            Return
+        End If
 
-        '画像をcanvasの座標(0, 0)の位置に描画する
-        g.DrawImage(img, 0, 0, w, h)
-        'PictureBox2に表示する
-        PictureBox2.Image = canvas
+        Dim oldPreview As Image = PictureBox2.Image
+        Using canvas As New Bitmap(w, h)
+            'ImageオブジェクトのGraphicsオブジェクトを作成する
+            Using g As Graphics = Graphics.FromImage(canvas)
+
+                '画像をcanvasの座標(0, 0)の位置に描画する
+                g.DrawImage(img, 0, 0, w, h)
+            End Using
+            'PictureBox2に表示する
+            PictureBox2.Image = CType(canvas.Clone(), Image)
+        End Using
 
         'Imageオブジェクトのリソースを解放する
         img.Dispose()
 
-        'Graphicsオブジェクトのリソースを解放する
-        g.Dispose()
+        If oldPreview IsNot Nothing Then
+            oldPreview.Dispose()
+        End If
 
 
         If stat = 1 And RadioButton6.Checked = True Then
 
-            showimage()
-            Form2.Close()
+            Form2.Hide()
             showimage()
             Form2.Show()
             Form2.Location = New Point(DisWidth, DisHeight)
@@ -1088,7 +1128,7 @@ Public Class Form1
             '    Form2.Hide()
             'End If
         End If
-    End Function
+    End Sub
 
     Private Sub NumericUpDown3_ValueChanged(sender As Object, e As EventArgs) Handles NumericUpDown3.ValueChanged
         If Not (PictureBox2.Image Is Nothing) Then
@@ -1605,7 +1645,7 @@ Public Class Form1
     End Sub
 
     Private Sub setWin()
-        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Xor WS_EX_LAYERED Xor WS_EX_TRANSPARENT)
+        SetWindowLong(Form2.Handle, GWL_EXSTYLE, GetWindowLong(Form2.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
 
         SetLayeredWindowAttributes(Form2.Handle, RGB(255, 0, 0), 255, LWA_COLORKEY)
         SetWindowPos(Form2.Handle, HWND_TOPMOST, 0, 0, 0, 0,
