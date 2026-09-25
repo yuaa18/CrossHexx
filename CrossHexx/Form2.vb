@@ -50,7 +50,7 @@ Public Class Form2
             TOPMOST_FLAGS)
     End Sub
 
-    Private Sub PictureBox1_MouseHover(sender As Object, e As EventArgs)
+    Private Sub PictureBox1_MouseHover(sender As Object, e As EventArgs) Handles PictureBox1.MouseHover
         SetWindowLong(Me.Handle, GWL_EXSTYLE, GetWindowLong(Me.Handle, GWL_EXSTYLE) Or WS_EX_LAYERED Or WS_EX_TRANSPARENT)
 
         SetLayeredWindowAttributes(Me.Handle, 0, 255, LWA_ALPHA)

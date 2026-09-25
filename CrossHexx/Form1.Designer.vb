@@ -1128,7 +1128,6 @@ Partial Class Form1
     Friend WithEvents ListBox1 As ListBox
     Friend WithEvents Button11 As Button
     Friend WithEvents Button10 As Button
-    Friend WithEvents ComboBox2 As ComboBox
     Friend WithEvents Label17 As Label
     Friend WithEvents Label16 As Label
     Friend WithEvents Label15 As Label

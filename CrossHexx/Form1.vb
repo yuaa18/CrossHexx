@@ -61,22 +61,14 @@ Public Class Form1
     Dim NumWidth As Integer
     Dim NumHeight As Integer
 
-    Dim DisWidth2 As Integer
-    Dim DisHeight2 As Integer
-
     Dim colorR As Integer
     Dim colorG As Integer
     Dim colorB As Integer
-
-    'クロスヘアのサイズと種類の変数を用意
-    Dim c_size As String
-    Dim c_type As String
 
     '1 = 画像
     Dim statImage As Integer
 
     Dim fWait As Integer
-    Dim rWait As Integer
 
     <DllImport("user32.dll", CharSet:=CharSet.Auto)>
     Private Shared Function GetWindowRect(ByVal hWnd As IntPtr,
@@ -95,24 +87,15 @@ Public Class Form1
     'プレビュー用をfとする
     Dim f As New Form2()
 
-    'iniの読み取り
-    Declare Function GetPrivateProfileInt Lib "kernel32" Alias "GetPrivateProfileIntA" (
-    ByVal lpApplicationName As String,
-    ByVal lpKeyName As String,
-    ByVal nDefault As Integer,
-    ByVal lpFileName As String) As Integer
-
-
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
-        'デスクトップのサイズ取得
-        Rect2 = Screen.PrimaryScreen.Bounds
+        'カーソル位置のスクリーンを基準にする（マルチモニタ対応）
+        Rect2 = Screen.FromPoint(Cursor.Position).Bounds
         'ポジションに設定
-        DisHeight = Rect2.Height / 2 - (Form2.Height / 2)
-        DisWidth = Rect2.Width / 2 - (Form2.Width / 2)
+        DisHeight = Rect2.Top + Rect2.Height / 2 - (Form2.Height / 2)
+        DisWidth = Rect2.Left + Rect2.Width / 2 - (Form2.Width / 2)
 
         statImage = 0
-        rWait = 0
 
         FirstHeight = DisHeight
         FirstWidth = DisWidth
@@ -201,6 +184,52 @@ Public Class Form1
         End If
     End Sub
 
+    '現在の種類選択を形状名で返す。"cross"/"dot"/"circle"/"image"
+    Private Function CurrentShape() As String
+        If RadioButton1.Checked Then
+            Return "cross"
+        ElseIf RadioButton2.Checked Then
+            Return "dot"
+        ElseIf RadioButton3.Checked Then
+            Return "circle"
+        End If
+        Return "image"
+    End Function
+
+    '現在の大きさ選択をサイズ名で返す。"small"/"large"
+    Private Function CurrentSize() As String
+        If RadioButton4.Checked Then
+            Return "small"
+        End If
+        Return "large"
+    End Function
+
+    '現在の選択でオーバーレイを作り直して表示する。
+    Private Async Function RefreshOverlay() As Task
+        If CurrentShape() = "image" Then
+            showimage()
+        Else
+            Await crosshair(CurrentSize(), CurrentShape())
+        End If
+        Form2.Show()
+        Form2.Location = New Point(DisWidth, DisHeight)
+    End Function
+
+    '現在の選択でプレビューを更新する。
+    Private Sub UpdatePreview()
+        If TabControl1.SelectedIndex <> 0 Then
+            f.Hide()
+            Return
+        End If
+        If RadioButton1.Checked Then
+            If RadioButton4.Checked Then preview1() Else bigpreview1()
+        ElseIf RadioButton2.Checked Then
+            If RadioButton4.Checked Then preview2() Else bigpreview2()
+        ElseIf RadioButton3.Checked Then
+            If RadioButton4.Checked Then preview3() Else bigpreview3()
+        End If
+    End Sub
+
     Private Async Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
         Button1.Enabled = False
         Button2.Enabled = True
@@ -210,42 +239,7 @@ Public Class Form1
         x_axis()
         y_axis()
 
-        If RadioButton1.Checked = True Then
-            'クロスヘア
-            c_type = "cross"
-            If RadioButton4.Checked = True Then
-                c_size = "small"
-            Else
-                c_size = "large"
-            End If
-            Await crosshair(c_size, c_type)
-        ElseIf RadioButton2.Checked = True Then
-            'ドット
-            c_type = "dot"
-            If RadioButton4.Checked = True Then
-                c_size = "small"
-            Else
-                c_size = "large"
-            End If
-            Await crosshair(c_size, c_type)
-        ElseIf RadioButton3.Checked = True Then
-            'ドット&サークル
-            c_type = "circle"
-            If RadioButton4.Checked = True Then
-                c_size = "small"
-            Else
-                c_size = "large"
-            End If
-            Await crosshair(c_size, c_type)
-        ElseIf RadioButton6.Checked = True Then
-
-            showimage()
-
-        End If
-
-
-        Form2.Show()
-        Form2.Location = New Point(DisWidth, DisHeight)
+        Await RefreshOverlay()
 
     End Sub
 
@@ -254,7 +248,6 @@ Public Class Form1
         Button2.Enabled = False
         '停止中ならば0
         stat = 0
-        rWait = 0
         Form2.Hide()
 
     End Sub
@@ -266,29 +259,12 @@ Public Class Form1
         End If
 
         statImage = 0
-        If stat = 1 Then
+        If stat = 1 AndAlso RadioButton1.Checked Then
             '起動中ならば表示
-            c_type = "cross"
-            If RadioButton4.Checked = True Then
-                c_size = "small"
-            ElseIf RadioButton4.Checked = False Then
-                c_size = "large"
-            End If
-            Await crosshair(c_size, c_type)
-
-            Form2.Show()
-            Form2.Location = New Point(DisWidth, DisHeight)
-
+            Await RefreshOverlay()
         End If
 
-        'プレビュー
-        If TabControl1.SelectedIndex = 0 Then
-            If RadioButton4.Checked = True Then
-                preview1()
-            Else
-                bigpreview1()
-            End If
-        End If
+        UpdatePreview()
 
     End Sub
 
@@ -297,27 +273,11 @@ Public Class Form1
             setWin()
         End If
         statImage = 0
-        If stat = 1 Then
-            c_type = "dot"
-            If RadioButton4.Checked = True Then
-                c_size = "small"
-            ElseIf RadioButton4.Checked = False Then
-                c_size = "large"
-            End If
-            Await crosshair(c_size, c_type)
-
-            Form2.Show()
-            Form2.Location = New Point(DisWidth, DisHeight)
-
+        If stat = 1 AndAlso RadioButton2.Checked Then
+            Await RefreshOverlay()
         End If
 
-        If TabControl1.SelectedIndex = 0 Then
-            If RadioButton4.Checked = True Then
-                preview2()
-            Else
-                bigpreview2()
-            End If
-        End If
+        UpdatePreview()
 
     End Sub
 
@@ -328,45 +288,27 @@ Public Class Form1
 
         statImage = 0
 
-        If stat = 1 Then
-            c_type = "circle"
-            If RadioButton4.Checked = True Then
-                c_size = "small"
-            ElseIf RadioButton4.Checked = False Then
-                c_size = "large"
-            End If
-            Await crosshair(c_size, c_type)
-
-            Form2.Show()
-            Form2.Location = New Point(DisWidth, DisHeight)
-
+        If stat = 1 AndAlso RadioButton3.Checked Then
+            Await RefreshOverlay()
         End If
 
 
-        If RadioButton4.Checked = True Then
-            preview3()
-        Else
-            bigpreview3()
-        End If
+        UpdatePreview()
 
 
 
     End Sub
 
-    Private Sub RadioButton6_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton6.CheckedChanged
-        '画像の描写
-        statImage = 1
+    Private Async Sub RadioButton6_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton6.CheckedChanged
+        If RadioButton6.Checked Then
+            '画像の描写
+            statImage = 1
+            Form2.PictureBox1.Visible = True
 
-        If stat = 1 Then
-
-            Form2.Hide()
-            showimage()
-            Form2.Show()
-            Form2.Location = New Point(DisWidth, DisHeight)
-
-        End If
-
-        If RadioButton6.Checked = False Then
+            If stat = 1 Then
+                Await RefreshOverlay()
+            End If
+        Else
             Form2.PictureBox1.Visible = False
         End If
 
@@ -464,8 +406,6 @@ Public Class Form1
             End If
         End If
 
-        rWait = 1
-
         Using path As GraphicsPath = BuildShapePath(types_in, sizes_in)
             ApplyRegion(Form2, path)
         End Using
@@ -508,27 +448,7 @@ Public Class Form1
     End Sub
 
     Private Sub TabControl1_SelectedIndexChanged(sender As Object, e As EventArgs) Handles TabControl1.SelectedIndexChanged
-        If TabControl1.SelectedIndex = 0 Then
-            If RadioButton4.Checked Then
-                If RadioButton1.Checked = True Then
-                    preview1()
-                ElseIf RadioButton2.Checked = True Then
-                    preview2()
-                ElseIf RadioButton3.Checked = True Then
-                    preview3()
-                End If
-            Else
-                If RadioButton1.Checked = True Then
-                    bigpreview1()
-                ElseIf RadioButton2.Checked = True Then
-                    bigpreview2()
-                ElseIf RadioButton3.Checked = True Then
-                    bigpreview3()
-                End If
-            End If
-        Else
-            f.Hide()
-        End If
+        UpdatePreview()
     End Sub
 
     Private Sub preview1()
@@ -579,58 +499,18 @@ Public Class Form1
     Private Async Sub RadioButton4_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton4.CheckedChanged
         'Medium
 
-        'Form2.Hide()
-        If RadioButton1.Checked = True Then
-            preview1()
-        ElseIf RadioButton2.Checked = True Then
-            preview2()
-        ElseIf RadioButton3.Checked = True Then
-            preview3()
-        End If
-        If stat = 1 And statImage = 0 Then
-            If RadioButton4.Checked = True Then
-                c_size = "small"
-                If RadioButton1.Checked = True Then
-                    c_type = "cross"
-                ElseIf RadioButton2.Checked = True Then
-                    c_type = "dot"
-                ElseIf RadioButton3.Checked = True Then
-                    c_type = "circle"
-                End If
-                Await crosshair(c_size, c_type)
-
-                Form2.Show()
-                Form2.Location = New Point(DisWidth, DisHeight)
-            End If
+        UpdatePreview()
+        If stat = 1 AndAlso statImage = 0 AndAlso RadioButton4.Checked Then
+            Await RefreshOverlay()
         End If
     End Sub
 
     Private Async Sub RadioButton5_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton5.CheckedChanged
         'large
 
-        'Form2.Hide()
-        If RadioButton1.Checked = True Then
-            bigpreview1()
-        ElseIf RadioButton2.Checked = True Then
-            bigpreview2()
-        ElseIf RadioButton3.Checked = True Then
-            bigpreview3()
-        End If
-        If stat = 1 And statImage = 0 Then
-            If RadioButton5.Checked = True Then
-                c_size = "large"
-                If RadioButton1.Checked = True Then
-                    c_type = "cross"
-                ElseIf RadioButton2.Checked = True Then
-                    c_type = "dot"
-                ElseIf RadioButton3.Checked = True Then
-                    c_type = "circle"
-                End If
-                Await crosshair(c_size, c_type)
-
-                Form2.Show()
-                Form2.Location = New Point(DisWidth, DisHeight)
-            End If
+        UpdatePreview()
+        If stat = 1 AndAlso statImage = 0 AndAlso RadioButton5.Checked Then
+            Await RefreshOverlay()
         End If
     End Sub
 
@@ -734,6 +614,11 @@ Public Class Form1
         End If
     End Sub
 
+    '数値をNumericUpDownに範囲内で反映する。
+    Private Sub SetAxisValue(nud As NumericUpDown, v As Decimal)
+        nud.Value = Math.Max(nud.Minimum, Math.Min(nud.Maximum, v))
+    End Sub
+
     Private Sub Button4_Click(sender As Object, e As EventArgs) Handles Button4.Click
         NumericUpDown1.Value = 0
         NumericUpDown2.Value = 0
@@ -790,8 +675,8 @@ Public Class Form1
         Else
             DisHeight = (nRect.Bottom + SystemInformation.CaptionHeight - nRect.Top) / 2 + nRect.Top - 17
             DisWidth = (nRect.Right - nRect.Left) / 2 + nRect.Left - 17
-            NumericUpDown1.Value = FirstHeight - DisHeight
-            NumericUpDown2.Value = DisWidth - FirstWidth
+            SetAxisValue(NumericUpDown1, FirstHeight - DisHeight)
+            SetAxisValue(NumericUpDown2, DisWidth - FirstWidth)
         End If
     End Sub
 
@@ -799,7 +684,7 @@ Public Class Form1
         'リンク先に移動したことにする
         LinkLabel1.LinkVisited = True
         'ブラウザで開く
-        System.Diagnostics.Process.Start("http://mjh.blog.jp/")
+        System.Diagnostics.Process.Start("https://mjh.blog.jp/")
     End Sub
 
     Private Sub CheckBox1_CheckedChanged(sender As Object, e As EventArgs) Handles CheckBox1.CheckedChanged
@@ -1278,17 +1163,20 @@ Public Class Form1
 
     End Sub
 
-    Private Function settingImg(path, type)
+    Private Sub settingImg(path As String)
 
         If path = "" Then
+            Dim oldEmpty As Image = PictureBox3.Image
             PictureBox3.Image = Nothing
+            If oldEmpty IsNot Nothing Then
+                oldEmpty.Dispose()
+            End If
             Label20.Text = ""
-            Return Nothing
+            Return
         Else
             Label20.Text = ""
         End If
 
-        Dim setFileName As String = path
         Dim stw As Integer = 0
         Dim sth As Integer = 0
 
@@ -1296,13 +1184,13 @@ Public Class Form1
             img = Image.FromFile(path)
         Catch ex As System.OutOfMemoryException
             MsgBox("ファイルが正しくありません。")
-            Return Nothing
+            Return
         Catch ex As System.ArgumentException
             MsgBox("ファイルの形式が無効です。")
-            Return Nothing
+            Return
         Catch ex As System.IO.FileNotFoundException
             MsgBox("ファイルが存在しません。")
-            Return Nothing
+            Return
         End Try
 
         oriw = img.Width
@@ -1325,22 +1213,30 @@ Public Class Form1
             sth = img.Height
         End If
 
-        Dim canvas As New Bitmap(stw, sth)
-        'ImageオブジェクトのGraphicsオブジェクトを作成する
-        Dim stg As Graphics = Graphics.FromImage(canvas)
+        If stw <= 0 OrElse sth <= 0 Then
+            img.Dispose()
+            Return
+        End If
 
-        '画像をcanvasの座標(0, 0)の位置に描画する
-        stg.DrawImage(img, 0, 0, stw, sth)
-        'PictureBox3に表示する
-        PictureBox3.Image = canvas
+        Dim oldThumb As Image = PictureBox3.Image
+        Using canvas As New Bitmap(stw, sth)
+            'ImageオブジェクトのGraphicsオブジェクトを作成する
+            Using stg As Graphics = Graphics.FromImage(canvas)
+                '画像をcanvasの座標(0, 0)の位置に描画する
+                stg.DrawImage(img, 0, 0, stw, sth)
+            End Using
+            'PictureBox3に表示する
+            PictureBox3.Image = CType(canvas.Clone(), Image)
+        End Using
 
         'Imageオブジェクトのリソースを解放する
         img.Dispose()
 
-        'Graphicsオブジェクトのリソースを解放する
-        stg.Dispose()
+        If oldThumb IsNot Nothing Then
+            oldThumb.Dispose()
+        End If
 
-    End Function
+    End Sub
 
     Private Sub ListBox1_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListBox1.SelectedIndexChanged
 
@@ -1397,7 +1293,7 @@ Public Class Form1
         Panel3.BackColor = Color.FromArgb(pvR, pvG, pvB)
 
         '===========画像=============
-        settingImg(pImg, pType)
+        settingImg(pImg)
 
         '===========x軸y軸=============
         SetAxisValue(NumericUpDown7, pY)
